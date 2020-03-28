@@ -25,21 +25,21 @@ contract ExampleOracleSimple is UniswapV2Library {
         uint112 reserve0;
         uint112 reserve1;
         (reserve0, reserve1, blockTimestampLast) = pair.getReserves();
-        assert(reserve0 != 0 && reserve1 != 0); // ensure that there's liquidity in the pair
-        assert(blockTimestampLast != 0); // ensure there's a price history
+        require(reserve0 != 0 && reserve1 != 0, "Liquidity not supplied."); // ensure that there's liquidity in the pair
+        require(blockTimestampLast != 0, "Token pair must have a trading history before first sampling."); // ensure there's a price history
     }
 
     function update() external {
         uint32 blockTimestamp = uint32(block.timestamp % 2**32);
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
-        assert(timeElapsed >= PERIOD); // ensure that at least one full period has passed since the last update
+        require(timeElapsed >= PERIOD, "Not enough time has passed."); // ensure that at least one full period has passed since the last update
 
         uint price0Cumulative = pair.price0CumulativeLast();
         uint price1Cumulative = pair.price1CumulativeLast();
 
         // if time has elapsed since the last update on the pair, mock the accumulated price values
         (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLastFromPair) = pair.getReserves();
-        assert(reserve0 != 0 && reserve1 != 0); // ensure that there's still liquidity in the pair
+        require(reserve0 != 0 && reserve1 != 0, "No liquidity left in pair."); // ensure that there's still liquidity in the pair
         if (blockTimestampLastFromPair != blockTimestamp) {
             price0Cumulative += uint(UQ112x112.encode(reserve1).uqdiv(reserve0)) * timeElapsed; // counterfactual
             price1Cumulative += uint(UQ112x112.encode(reserve0).uqdiv(reserve1)) * timeElapsed; // counterfactual
@@ -58,7 +58,7 @@ contract ExampleOracleSimple is UniswapV2Library {
         if (token == token0) {
             amountOut = UQ112x112.decode(price0Average.uqmul(amountIn));
         } else {
-            assert(token == token1);
+            require(token == token1, "token parameter must be one of the tokens for this pair.");
             amountOut = UQ112x112.decode(price1Average.uqmul(amountIn));
         }
     }
